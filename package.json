@@ -1,7 +1,7 @@
 {
-  "name": "resume-job-intelligence",
+  "name": "career-lens",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-powered job and resume intelligence platform",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
