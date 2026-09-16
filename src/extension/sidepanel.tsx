@@ -400,6 +400,11 @@ function SidePanel() {
       null
     );
 
+  const selectedRequirementRef =
+    useRef<HTMLButtonElement | null>(
+      null
+    );
+
   const [
     job,
     setJob
@@ -892,6 +897,10 @@ function SidePanel() {
       review
     ]);
 
+  // Track which requirement was last reviewed to ensure UI updates
+  const [lastReviewedId, setLastReviewedId] =
+    useState<string | null>(null);
+
   const acceptedEvidenceCount =
     useMemo(() => {
       if (!review) {
@@ -926,6 +935,14 @@ function SidePanel() {
           requirementId
       })
     );
+
+    // Scroll the selected requirement into view in the navigator
+    setTimeout(() => {
+      selectedRequirementRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest"
+      });
+    }, 0);
 
     await highlightRequirement(
       requirementId
@@ -1148,6 +1165,8 @@ function SidePanel() {
     ) {
       return;
     }
+
+    setLastReviewedId(selectedRequirement.id);
 
     await updateReview(
       current => ({
@@ -1505,8 +1524,19 @@ function SidePanel() {
       )}
 
       {message && (
-        <div style={styles.message}>
-          {message}
+        <div style={styles.messageContainer}>
+          <div style={styles.message}>
+            {message}
+          </div>
+          {message === "Local analysis complete." && (
+            <button
+              style={styles.reanalyzeButton}
+              onClick={() => analyze()}
+              title="Re-analyze this job with your resume"
+            >
+              Re-analyze
+            </button>
+          )}
         </div>
       )}
 
@@ -1530,7 +1560,12 @@ function SidePanel() {
         />
       ) : (
         <>
-          <JobSummary job={job} />
+          <JobSummary 
+            job={job}
+            onRefresh={() => 
+              void extractCurrentJob()
+            }
+          />
 
           <div style={styles.progressRow}>
             <div>
@@ -1567,162 +1602,195 @@ function SidePanel() {
           </div>
 
           <div style={styles.workspace}>
-            <aside style={styles.requirementNav}>
-              {groupedResults.map(
-                ({ group, results }) => {
-                  const groupReviewed =
-                    results.filter(
-                      result =>
-                        requirementIsReviewed(
-                          result.base
-                            .requirement
-                            .id
-                        )
-                    ).length;
+            <div style={styles.requirementNavigatorContainer}>
+              <nav style={styles.requirementNav}>
+                {groupedResults.map(
+                  ({ group, results }) => {
+                    const groupReviewed =
+                      results.filter(
+                        result =>
+                          requirementIsReviewed(
+                            result.base
+                              .requirement
+                              .id
+                          )
+                      ).length;
 
-                  return (
-                    <div
-                      key={group.id}
-                      style={
-                        styles.requirementGroup
-                      }
-                    >
+                    return (
                       <div
+                        key={group.id}
                         style={
-                          styles.groupHeader
+                          styles.requirementGroup
                         }
                       >
-                        <span>
-                          {group.title}
-                        </span>
-
-                        <span
+                        <div
                           style={
-                            styles.groupProgress
+                            styles.groupHeader
                           }
                         >
-                          {groupReviewed}/
-                          {results.length}
-                        </span>
-                      </div>
+                          <span>
+                            {group.title}
+                          </span>
 
-                      {results.map(
-                        result => {
-                          const requirement =
-                            result.base
-                              .requirement;
+                          <span
+                            style={
+                              styles.groupProgress
+                            }
+                          >
+                            {groupReviewed}/
+                            {results.length}
+                          </span>
+                        </div>
 
-                          const selected =
-                            requirement.id ===
-                            selectedRequirement?.id;
+                        {results.map(
+                          result => {
+                            const requirement =
+                              result.base
+                                .requirement;
 
-                          const reviewed =
-                            requirementIsReviewed(
-                              requirement.id
-                            );
+                            const selected =
+                              requirement.id ===
+                              selectedRequirement?.id;
 
-                          return (
-                            <button
-                              key={
+                            const reviewed =
+                              requirementIsReviewed(
                                 requirement.id
-                              }
-                              style={{
-                                ...styles.requirementItem,
-                                ...(selected
-                                  ? styles.requirementItemSelected
-                                  : {})
-                              }}
-                              onClick={() =>
-                                void selectRequirement(
-                                  requirement.id
-                                )
-                              }
-                            >
-                              <span
-                                style={
-                                  reviewed
-                                    ? styles.checkCircle
-                                    : styles.emptyCircle
-                                }
-                              >
-                                {reviewed
-                                  ? "✓"
-                                  : ""}
-                              </span>
+                              );
 
-                              <span
-                                style={
-                                  styles.requirementItemText
+                            return (
+                              <button
+                                key={
+                                  requirement.id
+                                }
+                                ref={
+                                  selected
+                                    ? selectedRequirementRef
+                                    : null
+                                }
+                                style={{
+                                  ...styles.requirementItem,
+                                  ...(selected
+                                    ? styles.requirementItemSelected
+                                    : {})
+                                }}
+                                onClick={() =>
+                                  void selectRequirement(
+                                    requirement.id
+                                  )
                                 }
                               >
-                                {
-                                  requirement.text
-                                }
-                              </span>
-                            </button>
-                          );
-                        }
-                      )}
-                    </div>
-                  );
-                }
-              )}
-            </aside>
+                                <span
+                                  style={
+                                    reviewed
+                                      ? styles.checkCircle
+                                      : styles.emptyCircle
+                                  }
+                                >
+                                  {reviewed
+                                    ? "✓"
+                                    : "○"}
+                                </span>
+
+                                <span
+                                  style={
+                                    styles.requirementItemText
+                                  }
+                                >
+                                  {
+                                    requirement.text
+                                  }
+                                </span>
+                              </button>
+                            );
+                          }
+                        )}
+                      </div>
+                    );
+                  }
+                )}
+              </nav>
+            </div>
 
             <main style={styles.reviewPane}>
               {selectedRequirement &&
               selectedResult ? (
-                <RequirementReview
-                  requirement={
-                    selectedRequirement
-                  }
-                  result={
-                    selectedResult
-                  }
-                  evidence={
-                    getEvidenceForResult(
-                      selectedResult
-                    )
-                  }
-                  decisions={
-                    review
-                      .requirements[
-                        selectedRequirement
-                          .id
-                      ]?.evidence ??
-                    {}
-                  }
-                  onDecision={
-                    setEvidenceDecision
-                  }
-                  onEditStart={(
-                    evidenceItem
-                  ) => {
-                    setEditEvidence({
-                      requirementId:
-                        selectedRequirement.id,
-                      evidenceId:
-                        evidenceItem.id
-                    });
+                <>
+                  <div style={styles.selectedRequirementHeader}>
+                    <div style={styles.selectedRequirementTitle}>
+                      Selected Requirement
+                    </div>
+                    <div style={styles.selectedRequirementText}>
+                      {selectedRequirement.text}
+                    </div>
+                  </div>
 
-                    setEditedEvidenceText(
-                      evidenceItem.sourceText
-                    );
-                  }}
-                  onFinish={
-                    finishRequirement
-                  }
-                  onRegenerateAI={(evidenceItem) => {
-                    setMessage(
-                      "AI regeneration will be connected to the semantic AI provider."
-                    );
-                  }}
-                  reviewed={
-                    requirementIsReviewed(
-                      selectedRequirement.id
-                    )
-                  }
-                />
+                  <div style={styles.reviewContent}>
+                    <RequirementReview
+                      requirement={
+                        selectedRequirement
+                      }
+                      result={
+                        selectedResult
+                      }
+                      evidence={
+                        getEvidenceForResult(
+                          selectedResult
+                        )
+                      }
+                      decisions={
+                        review
+                          .requirements[
+                            selectedRequirement
+                              .id
+                          ]?.evidence ??
+                        {}
+                      }
+                      onDecision={
+                        setEvidenceDecision
+                      }
+                      onEditStart={(
+                        evidenceItem
+                      ) => {
+                        setEditEvidence({
+                          requirementId:
+                            selectedRequirement.id,
+                          evidenceId:
+                            evidenceItem.id
+                        });
+
+                        // Check if there's already an edited version of this evidence
+                        const existingSuggestion =
+                          review?.suggestions.find(
+                            suggestion =>
+                              suggestion.evidenceIds.includes(
+                                evidenceItem.id
+                              ) &&
+                              suggestion.requirementIds.includes(
+                                selectedRequirement.id
+                              )
+                          );
+
+                        setEditedEvidenceText(
+                          existingSuggestion?.proposed ??
+                          evidenceItem.sourceText
+                        );
+                      }}
+                      onFinish={
+                        finishRequirement
+                      }
+                      onRegenerateAI={(evidenceItem) => {
+                        setMessage(
+                          "AI regeneration will be connected to the semantic AI provider."
+                        );
+                      }}
+                      reviewed={
+                        requirementIsReviewed(
+                          selectedRequirement.id
+                        )
+                      }
+                    />
+                  </div>
+                </>
               ) : (
                 <div
                   style={
@@ -1860,24 +1928,40 @@ function Header({
 }
 
 function JobSummary({
-  job
+  job,
+  onRefresh
 }: {
   job: Job;
+  onRefresh?: () => void;
 }) {
   return (
     <section style={styles.jobSummary}>
-      <div style={styles.jobSummaryTitle}>
-        {job.title ||
-          "Untitled position"}
-      </div>
+      <div style={styles.jobSummaryTitleRow}>
+        <div>
+          <div style={styles.jobSummaryTitle}>
+            {job.title ||
+              "Untitled position"}
+          </div>
 
-      <div style={styles.jobSummaryMeta}>
-        {job.company ??
-          "Company not detected"}
+          <div style={styles.jobSummaryMeta}>
+            {job.company ??
+              "Company not detected"}
 
-        {job.location
-          ? ` · ${job.location}`
-          : ""}
+            {job.location
+              ? ` · ${job.location}`
+              : ""}
+          </div>
+        </div>
+
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            style={styles.refreshButton}
+            title="Re-analyze this job posting"
+          >
+            ↻
+          </button>
+        )}
       </div>
 
       <div style={styles.jobStats}>
@@ -2582,9 +2666,29 @@ const styles: Record<
       "1px solid #e5e7eb"
   },
 
+  jobSummaryTitleRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "12px"
+  },
+
   jobSummaryTitle: {
     fontSize: "17px",
     fontWeight: 750
+  },
+
+  refreshButton: {
+    background: "#f3f4f6",
+    border: "1px solid #d1d5db",
+    borderRadius: "6px",
+    padding: "6px 10px",
+    fontSize: "16px",
+    cursor: "pointer",
+    color: "#6b7280",
+    transition: "all 0.2s",
+    flex: "0 0 auto",
+    marginTop: "2px"
   },
 
   jobSummaryMeta: {
@@ -2617,11 +2721,12 @@ const styles: Record<
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: "20px",
-    padding: "13px 18px",
+    gap: "14px",
+    padding: "12px 14px",
     background: "#ffffff",
     borderBottom:
-      "1px solid #e5e7eb"
+      "1px solid #e5e7eb",
+    fontSize: "12px"
   },
 
   progressSubtext: {
@@ -2645,17 +2750,23 @@ const styles: Record<
   },
 
   workspace: {
-    display: "grid",
-    gridTemplateColumns:
-      "42% 58%",
-    minHeight: "calc(100vh - 170px)"
+    display: "flex",
+    flexDirection: "column",
+    flex: 1,
+    minHeight: 0
+  },
+
+  requirementNavigatorContainer: {
+    flex: "0 0 280px",
+    borderBottom: "1px solid #e1e5ea",
+    overflowY: "auto",
+    background: "#f1f3f6"
   },
 
   requirementNav: {
-    background: "#f1f3f6",
-    borderRight:
-      "1px solid #e1e5ea",
-    overflowY: "auto"
+    background: "transparent",
+    display: "flex",
+    flexDirection: "column"
   },
 
   requirementGroup: {
@@ -2684,19 +2795,24 @@ const styles: Record<
     alignItems: "flex-start",
     gap: "8px",
     textAlign: "left",
-    border: 0,
+    border: "1px solid transparent",
     borderTop:
       "1px solid rgba(0,0,0,0.025)",
     background: "transparent",
     padding: "10px 11px",
     cursor: "pointer",
-    color: "#334155"
+    color: "#334155",
+    transition: "all 0.15s ease",
+    fontSize: "13px"
   },
 
   requirementItemSelected: {
     background: "#ffffff",
-    boxShadow:
-      "inset 3px 0 0 #111827"
+    borderLeft:
+      "3px solid #1e293b",
+    paddingLeft: "10px",
+    fontWeight: 600,
+    color: "#1e293b"
   },
 
   requirementItemText: {
@@ -2729,7 +2845,39 @@ const styles: Record<
 
   reviewPane: {
     background: "#ffffff",
+    padding: "0",
+    overflowY: "auto",
+    flex: 1,
+    minHeight: 0,
+    display: "flex",
+    flexDirection: "column"
+  },
+
+  selectedRequirementHeader: {
+    borderBottom: "1px solid #e2e8f0",
+    padding: "16px 22px",
+    background: "#f8fafc",
+    flex: "0 0 auto"
+  },
+
+  selectedRequirementTitle: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#334155",
+    marginBottom: "8px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px"
+  },
+
+  selectedRequirementText: {
+    fontSize: "13px",
+    lineHeight: 1.5,
+    color: "#1e293b"
+  },
+
+  reviewContent: {
     padding: "22px",
+    flex: 1,
     overflowY: "auto"
   },
 
@@ -3017,15 +3165,36 @@ const styles: Record<
     fontSize: "11px"
   },
 
-  message: {
+  messageContainer: {
     margin: "10px 14px",
     padding: "9px 11px",
     borderRadius: "7px",
     background: "#f0fdf4",
     border:
       "1px solid #bbf7d0",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "10px"
+  },
+
+  message: {
     color: "#166534",
-    fontSize: "11px"
+    fontSize: "11px",
+    flex: 1
+  },
+
+  reanalyzeButton: {
+    padding: "4px 12px",
+    fontSize: "11px",
+    border: "1px solid #86efac",
+    background: "#dcfce7",
+    color: "#166534",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontWeight: 500,
+    whiteSpace: "nowrap" as any,
+    transition: "all 0.2s"
   },
 
   loading: {
