@@ -1,0 +1,37 @@
+{
+  "name": "resume-job-intelligence",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build && vite build --config vite.content.config.ts",
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "copilot-bridge": "tsx local/copilot-bridge/server.ts",
+    "copilot-bridge:dev": "tsx watch local/copilot-bridge/server.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/chrome": "^0.3.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^1.0.13",
+    "express": "^5.2.1",
+    "mammoth": "^1.12.3",
+    "pdfjs-dist": "^6.3.289"
+  }
+}
