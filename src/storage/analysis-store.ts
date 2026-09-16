@@ -1,19 +1,24 @@
 import type { JobResumeAnalysis } from "../analysis/job-resume-analyzer";
+import type { SemanticJobResumeAnalysis } from "../analysis/semantic-analysis";
 import type { Suggestion } from "../suggestions/Suggestion";
+
+export type StoredAnalysisPayload =
+  | JobResumeAnalysis
+  | SemanticJobResumeAnalysis;
 
 export interface StoredAnalysis {
   id: string;
   jobId: string;
   resumeId: string;
-  analysis: JobResumeAnalysis;
+  analysis: StoredAnalysisPayload;
   suggestions: Suggestion[];
   createdAt: string;
 }
 
-const KEY = "resumeJobAnalyses";
+const KEY = "careerLensAnalyses";
 
 export async function saveAnalysis(
-  analysis: JobResumeAnalysis,
+  analysis: StoredAnalysisPayload,
   suggestions: Suggestion[]
 ): Promise<void> {
   const existing =
@@ -37,9 +42,8 @@ export async function saveAnalysis(
   });
 }
 
-export async function getAnalyses(): Promise<
-  StoredAnalysis[]
-> {
+export async function getAnalyses():
+  Promise<StoredAnalysis[]> {
   const result =
     await chrome.storage.local.get(KEY);
 

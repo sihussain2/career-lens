@@ -26,7 +26,8 @@ export class DocxResumeImporter implements ResumeImporter {
     return {
       text: result.value.trim(),
       filename: file.name,
-      type: "docx"
+      type: "docx",
+      originalData: buffer
     };
   }
 }

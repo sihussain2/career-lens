@@ -25,4 +25,16 @@ export interface Resume {
   sections: ResumeSection[];
 
   evidenceIds: string[];
+
+  /**
+   * Reference to the original document artifact.
+   *
+   * The parsed Resume model is used for analysis, but generated
+   * documents must be derived from the original artifact so that
+   * formatting is preserved.
+   */
+  originalDocument?: {
+    type: "docx";
+    filename: string;
+  };
 }

@@ -7,6 +7,8 @@ import {
   type EnhancedJobResumeAnalysis
 } from "./enhanced-analysis";
 import { buildAnalysisContext } from "../ai/context-builder";
+import type { Suggestion } from "../suggestions/Suggestion";
+import { buildValidatedSuggestions } from "./suggestions/suggestion-engine";
 import type {
   LLMClient,
   SemanticRequirementAnalysis
@@ -16,6 +18,7 @@ export type SemanticJobResumeAnalysis =
   Omit<EnhancedJobResumeAnalysis, "analysisMode"> & {
     analysisMode: "semantic";
     semantic: SemanticRequirementAnalysis[];
+    suggestions: Suggestion[];
   };
 
 export async function analyzeJobSemantically(
@@ -43,6 +46,12 @@ export async function analyzeJobSemantically(
     new Set(job.requirements.map((item) => item.id)),
     new Set(evidence.map((item) => item.id)),
     new Set(resume.sections.map((item) => item.id))
+  );
+
+  const suggestions = buildValidatedSuggestions(
+    validatedResponse.suggestions,
+    job,
+    evidence
   );
 
   const semanticByRequirement = new Map(
@@ -111,6 +120,7 @@ export async function analyzeJobSemantically(
     ),
     summary,
     analysisMode: "semantic",
-    semantic: validatedResponse.requirements
+    semantic: validatedResponse.requirements,
+    suggestions
   };
 }
