@@ -2,6 +2,7 @@ export interface ResumeImportResult {
   text: string;
   filename: string;
   type: "pdf" | "docx";
+  originalData?: ArrayBuffer;
 }
 
 export interface ResumeImporter {

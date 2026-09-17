@@ -1,0 +1,285 @@
+import express from "express";
+import { CopilotClient } from "@github/copilot-sdk";
+
+const app = express();
+
+const PORT = Number(
+  process.env.PORT ?? 8787
+);
+
+const MODEL =
+  process.env.COPILOT_MODEL ?? "gpt-5.4";
+
+app.use(
+  express.json({
+    limit: "2mb"
+  })
+);
+
+app.use((req, res, next) => {
+  const allowedOrigin =
+    process.env.CAREERLENS_ALLOWED_ORIGIN ?? "*";
+
+  res.header(
+    "Access-Control-Allow-Origin",
+    allowedOrigin
+  );
+
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET, POST, OPTIONS"
+  );
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+
+  next();
+});
+
+const SYSTEM_PROMPT = `
+You are the semantic reasoning engine for CareerLens.
+
+Your job is to analyze whether supplied resume evidence
+actually supports specific job requirements.
+
+GROUNDING RULES:
+1. Use ONLY supplied resume evidence.
+2. Never invent skills, technologies, employers,
+   responsibilities, qualifications, achievements,
+   dates, metrics, or experience.
+3. Do not infer a specific technology from generic
+   engineering experience.
+4. Do not treat a job requirement as candidate evidence.
+5. Evidence IDs are authoritative.
+6. Every supported conclusion must cite evidence IDs.
+7. Confidence measures evidence strength, not hiring
+   probability.
+8. Be conservative.
+
+RELATIONSHIPS:
+strong_support
+partial_support
+related
+contradicts
+no_support
+
+SUGGESTIONS:
+REWORD
+REORDER
+ADD
+REMOVE
+EMPHASIZE
+DE_EMPHASIZE
+NO_CHANGE
+
+Never create unsupported qualifications in ADD or REWORD.
+
+Return JSON only.
+`;
+
+function buildPrompt(request: unknown): string {
+  return [
+    SYSTEM_PROMPT,
+    "",
+    "Analyze this structured request:",
+    "",
+    JSON.stringify(request, null, 2),
+    "",
+    "Return exactly:",
+    "",
+    JSON.stringify({
+      requirements: [
+        {
+          requirementId: "existing requirement ID",
+          relationship:
+            "strong_support | partial_support | related | contradicts | no_support",
+          confidence: 0.0,
+          explanation: "short factual explanation",
+          evidence: [
+            {
+              evidenceId: "existing evidence ID",
+              relationship:
+                "strong_support | partial_support | related | contradicts | no_support",
+              confidence: 0.0,
+              explanation:
+                "why this evidence supports or does not support the requirement"
+            }
+          ]
+        }
+      ],
+      suggestions: [
+        {
+          type:
+            "REWORD | REORDER | ADD | REMOVE | EMPHASIZE | DE_EMPHASIZE | NO_CHANGE",
+          sectionId: "existing section ID",
+          original:
+            "existing resume text when applicable",
+          proposed:
+            "proposed text when applicable",
+          reason: "factual reason",
+          evidenceIds: ["existing evidence ID"],
+          requirementIds: ["existing requirement ID"],
+          confidence: 0.0
+        }
+      ]
+    }, null, 2),
+    "",
+    "Do not use markdown fences."
+  ].join("\\n");
+}
+
+function getUserToken(
+  req: express.Request
+): string {
+  const value =
+    req.header("authorization");
+
+  if (!value?.startsWith("Bearer ")) {
+    throw new Error(
+      "Missing GitHub user authorization token."
+    );
+  }
+
+  return value.slice("Bearer ".length).trim();
+}
+
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    provider: "github-copilot",
+    model: MODEL
+  });
+});
+
+app.post(
+  "/semantic-analysis",
+  async (req, res) => {
+    let client: CopilotClient | undefined;
+
+    try {
+      /*
+       * Production authentication boundary:
+       * the bearer token must come from the application's
+       * authenticated GitHub OAuth session.
+       *
+       * Do not expose raw GitHub tokens to arbitrary clients
+       * in a production deployment. The OAuth/session layer
+       * will own token acquisition and rotation.
+       */
+      const userToken = getUserToken(req);
+
+      client = new CopilotClient({
+        gitHubToken: userToken,
+        useLoggedInUser: false
+      });
+
+      await client.start();
+
+      const session =
+        await client.createSession({
+          model: MODEL,
+          sessionId:
+            `career-lens-${crypto.randomUUID()}`
+        });
+
+      try {
+        const response =
+          await session.sendAndWait({
+            prompt: buildPrompt(req.body)
+          });
+
+        const content =
+          response?.data?.content;
+
+        if (
+          typeof content !== "string" ||
+          !content.trim()
+        ) {
+          throw new Error(
+            "Copilot returned no content."
+          );
+        }
+
+        let parsed: unknown;
+
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          throw new Error(
+            "Copilot returned non-JSON content."
+          );
+        }
+
+        res.json(parsed);
+      } finally {
+        await session.disconnect();
+      }
+    } catch (error) {
+      console.error(
+        "CareerLens semantic analysis failed:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Semantic gateway failure."
+      });
+    } finally {
+      if (client) {
+        try {
+          await client.stop();
+        } catch {
+          // Ignore shutdown error.
+        }
+      }
+    }
+  }
+);
+
+app.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+    console.log("");
+    console.log(
+      "=============================================="
+    );
+    console.log(
+      "CareerLens Semantic Gateway"
+    );
+    console.log(
+      "=============================================="
+    );
+    console.log(
+      `Listening: http://127.0.0.1:${PORT}`
+    );
+    console.log(
+      `Provider:  GitHub Copilot`
+    );
+    console.log(
+      `Model:     ${MODEL}`
+    );
+    console.log("");
+    console.log(
+      "Gateway requires a per-request GitHub token."
+    );
+    console.log(
+      "OAuth/session handling is intentionally kept"
+    );
+    console.log(
+      "outside this semantic service."
+    );
+    console.log(
+      "=============================================="
+    );
+  }
+);

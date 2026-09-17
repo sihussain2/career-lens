@@ -1,15 +1,19 @@
 {
-  "name": "resume-job-intelligence",
+  "name": "career-lens",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-powered job and resume intelligence platform",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
     "build": "vite build && vite build --config vite.content.config.ts",
+    "package": "node scripts/package.js",
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "copilot-bridge": "tsx local/copilot-bridge/server.ts",
-    "copilot-bridge:dev": "tsx watch local/copilot-bridge/server.ts"
+    "copilot-bridge:dev": "tsx watch local/copilot-bridge/server.ts",
+    "gateway": "tsx gateway/server.ts",
+    "gateway:dev": "tsx watch gateway/server.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,19 +22,29 @@
   "devDependencies": {
     "@types/chrome": "^0.3.0",
     "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
+    "@types/jszip": "^3.4.0",
     "@types/node": "^22.20.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/ui": "^2.0.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^2.0.5"
   },
   "dependencies": {
     "@github/copilot-sdk": "^1.0.13",
+    "docx": "^9.7.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.2",
     "mammoth": "^1.12.3",
     "pdfjs-dist": "^6.3.289"
   }

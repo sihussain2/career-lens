@@ -29,7 +29,7 @@ export default defineConfig({
         content: resolve(
           rootDir,
           "src/extension/content/content-script.ts"
-        )
+        ),
       },
 
       output: {
