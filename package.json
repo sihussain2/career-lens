@@ -7,6 +7,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "build": "vite build && vite build --config vite.content.config.ts",
+    "package": "node scripts/package.js",
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "copilot-bridge": "tsx local/copilot-bridge/server.ts",

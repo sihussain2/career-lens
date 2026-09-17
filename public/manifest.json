@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Resume & Job Intelligence",
+  "name": "CareerLens",
   "version": "0.1.0",
   "description": "Evidence-grounded resume and job analysis.",
   "permissions": [
@@ -11,7 +11,7 @@
     "identity"
   ],
   "action": {
-    "default_title": "Resume & Job Intelligence"
+    "default_title": "CareerLens"
   },
   "background": {
     "service_worker": "background.js",
