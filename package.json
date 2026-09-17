@@ -4,7 +4,8 @@
   "description": "AI-powered job and resume intelligence platform",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
     "build": "vite build && vite build --config vite.content.config.ts",
     "dev": "vite",
     "typecheck": "tsc --noEmit",
@@ -26,12 +27,14 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/ui": "^2.0.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
-    "vite-plugin-static-copy": "^4.1.1"
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^2.0.5"
   },
   "dependencies": {
     "@github/copilot-sdk": "^1.0.13",

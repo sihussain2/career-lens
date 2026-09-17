@@ -817,13 +817,10 @@ function SidePanel() {
 
       setAnalysis(result);
 
-      setReview(
-        current =>
-          current ??
-          createEmptyReview(
-            job
-          )
-      );
+      // Reset review state for fresh analysis
+      // Clear old selections and evidence decisions
+      const freshReview = createEmptyReview(job);
+      setReview(freshReview);
 
       setMessage(
         "Local analysis complete."
@@ -2413,7 +2410,7 @@ function GenerateModal({
           <button
             style={
               format === "docx"
-                ? styles.formatOptionSelected
+                ? { ...styles.formatOption, ...styles.formatOptionSelected }
                 : styles.formatOption
             }
             onClick={() =>
@@ -2427,7 +2424,7 @@ function GenerateModal({
           <button
             style={
               format === "pdf"
-                ? styles.formatOptionSelected
+                ? { ...styles.formatOption, ...styles.formatOptionSelected }
                 : styles.formatOption
             }
             onClick={() =>
@@ -2441,7 +2438,7 @@ function GenerateModal({
           <button
             style={
               format === "both"
-                ? styles.formatOptionSelected
+                ? { ...styles.formatOption, ...styles.formatOptionSelected }
                 : styles.formatOption
             }
             onClick={() =>
@@ -3365,11 +3362,30 @@ const styles: Record<
   },
 
   formatOption: {
+    flex: 1,
+    padding: "12px 16px",
+    border: "1px solid #cbd5e1",
+    borderRadius: "7px",
+    background: "#ffffff",
+    color: "#64748b",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    textAlign: "center"
+  },
+
+  formatOptionSelected: {
+    background: "#1e293b",
+    color: "#ffffff",
+    border: "1px solid #1e293b"
+  },
+
+  formatOptions: {
     display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    padding: "9px 0",
-    cursor: "pointer"
+    gap: "10px",
+    marginTop: "16px",
+    marginBottom: "20px"
   },
 
   modalHint: {
